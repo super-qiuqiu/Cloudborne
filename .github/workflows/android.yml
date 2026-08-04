@@ -55,7 +55,7 @@ jobs:
         shell: bash
         run: |
           curl --fail --location \
-            https://github.com/com-lihaoyi/mill/releases/download/1.1.6-104-5bbe1e/mill \
+            https://raw.githubusercontent.com/com-lihaoyi/mill/1.1.7/mill \
             --output mill
           chmod +x mill
 
