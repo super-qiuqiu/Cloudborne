@@ -36,10 +36,10 @@ object SubscriptionParser {
     private fun parseClash(body: String): List<ProxyNode> = runCatching {
         val yaml = Yaml().load<Any>(body)
         val proxies = (yaml as? Map<*, *>)?.get("proxies") as? List<*>
-        proxies.orEmpty().mapNotNull { item -> toClashNode(item) }
+        proxies.orEmpty().withIndex().mapNotNull { (index, item) -> toClashNode(item, index) }
     }.getOrDefault(emptyList())
 
-    private fun toClashNode(item: Any?): ProxyNode? {
+    private fun toClashNode(item: Any?, index: Int): ProxyNode? {
         if (item !is Map<*, *>) return null
         val type = (item["type"] as? String)?.lowercase() ?: return null
         if (type !in supportedSchemes) return null
@@ -80,7 +80,7 @@ object SubscriptionParser {
         }
 
         return ProxyNode(
-            id = UUID.nameUUIDFromBytes("yaml:$server:$port:$userInfo".toByteArray()).toString(),
+            id = UUID.nameUUIDFromBytes("yaml:$index:$name:$server:$port".toByteArray()).toString(),
             name = name,
             scheme = type,
             server = server,

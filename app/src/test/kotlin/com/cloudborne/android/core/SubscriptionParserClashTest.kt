@@ -100,4 +100,28 @@ class SubscriptionParserClashTest {
 
         assertEquals(3, nodes.size)
     }
+
+    @Test
+    fun nodesSharingServerPortAndPasswordGetDistinctIds() {
+        val input = """
+            proxies:
+              - name: "Node-A"
+                type: ss
+                server: same.example.com
+                port: 2377
+                cipher: chacha20-ietf-poly1305
+                password: "shared-password"
+              - name: "Node-B"
+                type: ss
+                server: same.example.com
+                port: 2377
+                cipher: chacha20-ietf-poly1305
+                password: "shared-password"
+        """.trimIndent()
+
+        val nodes = SubscriptionParser.parse(input)
+
+        assertEquals(2, nodes.size)
+        assertEquals(2, nodes.map { it.id }.distinct().size)
+    }
 }
