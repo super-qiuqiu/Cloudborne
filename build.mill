@@ -97,6 +97,36 @@ object app extends AndroidAppKotlinModule with KspModule {
       mvn"androidx.room:room-testing:2.8.4",
       mvn"androidx.compose.ui:ui-test-junit4:1.12.0-alpha01"
     )
+
+    // Mill 默认对 META-INF 文件按目标路径 distinctBy 去重（先者胜），会丢弃
+    // kotlinx-coroutines-test 的 ServiceLoader 注册，导致 Compose 测试抛出
+    // "Exception handler was not found via a ServiceLoader"。这里改为合并
+    // 同名 META-INF/services/* 文件（与 Gradle packagingOptions.merges 行为一致）。
+    override def androidPackagedMetaInfFiles: T[Seq[AndroidPackageableExtraFile]] = Task {
+      def metaInfRoot(p: os.Path): os.Path = {
+        var current = p
+        while (!current.endsWith(os.rel / "META-INF")) current = current / os.up
+        current / os.up
+      }
+
+      val all = androidLibsClassesJarMetaInf().map { ref =>
+        ref.path.subRelativeTo(metaInfRoot(ref.path)) -> ref.path
+      }
+      val servicesPrefix = "META-INF/services/"
+      val (services, others) = all.partition(_._1.toString.startsWith(servicesPrefix))
+      val mergedServices = services.groupBy(_._1).toSeq.map { (destination, files) =>
+        val entries = files
+          .flatMap((_, src) => os.read.lines(src))
+          .map(_.trim)
+          .filter(line => line.nonEmpty && !line.startsWith("#"))
+          .distinct
+        val merged = Task.dest / destination.last
+        os.write(merged, entries.mkString("", "\n", "\n"))
+        AndroidPackageableExtraFile(PathRef(merged), destination)
+      }
+      others.map((destination, src) => AndroidPackageableExtraFile(PathRef(src), destination))
+        .distinctBy(_.destination) ++ mergedServices
+    }
   }
 
 }
