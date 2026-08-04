@@ -32,6 +32,15 @@ data class ProxyNode(
                 val parts = userInfo.split(":", limit = 2)
                 fields["method"] = jsonString(parts.getOrElse(0) { "aes-128-gcm" })
                 fields["password"] = jsonString(parts.getOrElse(1) { "" })
+                // SIP003 插件：sing-box 原生支持 obfs-local / v2ray-plugin
+                if (query["plugin"] == "obfs") {
+                    val mode = query["plugin_mode"] ?: "tls"
+                    val host = query["plugin_host"]
+                    if (host != null) {
+                        fields["plugin"] = jsonString("obfs-local")
+                        fields["plugin_opts"] = jsonString("obfs=$mode;obfs-host=$host;")
+                    }
+                }
             }
         }
         val security = query["security"] ?: query["tls"]
