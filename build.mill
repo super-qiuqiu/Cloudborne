@@ -1,10 +1,8 @@
 //| mill-jvm-version: zulu:21
 //|
 //| repositories:
-//| - https://maven.aliyun.com/repository/google
-//| - https://maven.aliyun.com/repository/central
 //| - https://repo1.maven.org/maven2
-//| - https://proxyd.picpi.top/https://dl.google.com/dl/android/maven2
+//| - https://dl.google.com/dl/android/maven2
 //|
 package build
 
@@ -30,12 +28,11 @@ object app extends AndroidAppKotlinModule with KspModule {
   def androidMinSdk = 26
   def androidEnableCompose = true
 
-  // 本地 M2(libbox) -> 阿里镜像(主) -> 皮皮加速 repo1(兜底, salt-ui-android 等阿里缺的)
+  // 本地 M2(libbox) -> 官方 Google Maven -> 官方 Maven Central
   override def repositoriesTask = Task.Anon {
     Seq(localM2) ++ Seq(
-      MavenRepository("https://maven.aliyun.com/repository/google"),
-      MavenRepository("https://maven.aliyun.com/repository/central"),
-      MavenRepository("https://proxyd.picpi.top/https://repo1.maven.org/maven2")
+      MavenRepository("https://dl.google.com/dl/android/maven2"),
+      MavenRepository("https://repo1.maven.org/maven2")
     ) ++ super.repositoriesTask()
   }
   def androidIsDebug = true
