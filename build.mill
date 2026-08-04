@@ -60,6 +60,7 @@ object app extends AndroidAppKotlinModule with KspModule {
     mvn"androidx.datastore:datastore-preferences:1.2.0",
     mvn"androidx.customview:customview-poolingcontainer:1.1.0",
     mvn"androidx.tracing:tracing:1.3.0",
+    mvn"org.yaml:snakeyaml:2.3",
     mvn"io.nekohasekai:libbox:1.13.15",
     mvn"io.github.moriafly:salt-ui-android:3.0.0-alpha01"
   )
