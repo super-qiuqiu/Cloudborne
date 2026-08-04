@@ -66,8 +66,8 @@ object SubscriptionParser {
             val headers = ws["headers"] as? Map<*, *>
             (headers?.get("Host") as? String)?.let { query["host"] = it }
         }
-        // TLS
-        if (item["tls"] == true) query["security"] = "tls"
+        // TLS：trojan 协议默认即 TLS；其余按显式 tls 字段
+        if (item["tls"] == true || type == "trojan") query["security"] = "tls"
         (item["servername"] as? String)?.let { query["sni"] = it }
         (item["sni"] as? String)?.let { query["sni"] = it }
         if (item["skip-cert-verify"] == true) query["insecure"] = "true"
