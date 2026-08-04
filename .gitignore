@@ -1,0 +1,17 @@
+# Mill and Android generated output
+out/
+.mill-workspace/
+.gradle/
+local.properties
+
+# IDE/editor files
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+
+# Local secrets and signing material
+*.jks
+*.keystore

@@ -1,0 +1,86 @@
+name: Cloudborne Android
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'app/**'
+      - 'vendor/sing-box/libbox.aar'
+      - 'build.mill'
+      - '.mill-repositories'
+      - 'scripts/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'vendor/sing-box/libbox.aar'
+      - 'build.mill'
+      - '.mill-repositories'
+      - 'scripts/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/.android-sdk
+      JAVA_TOOL_OPTIONS: -Xmx4g -XX:MaxMetaspaceSize=768m -XX:+UseG1GC
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          sdkmanager --sdk_root="$ANDROID_HOME" \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.1.0"
+          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+
+      - name: Install Mill
+        shell: bash
+        run: |
+          curl --fail --location \
+            https://github.com/com-lihaoyi/mill/releases/download/1.1.6-104-5bbe1e/mill \
+            --output mill
+          chmod +x mill
+
+      - name: Publish libbox AAR to local Maven
+        run: ./scripts/publish-libbox-local.sh
+
+      - name: Run JVM tests
+        run: ./mill app.test
+
+      - name: Build APK
+        run: ./mill app.androidApk
+
+      - name: Build instrumented test APK
+        run: ./mill app.androidTest.androidTestApk
+
+      - name: Verify APK signatures
+        shell: bash
+        run: |
+          "$ANDROID_HOME/build-tools/36.1.0/apksigner" verify out/app/androidApk.dest/app.apk
+          "$ANDROID_HOME/build-tools/36.1.0/apksigner" verify out/app/androidTest/androidApk.dest/app.apk
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudborne-android-apks
+          path: |
+            out/app/androidApk.dest/app.apk
+            out/app/androidTest/androidApk.dest/app.apk

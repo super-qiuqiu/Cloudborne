@@ -1,0 +1,104 @@
+//| mill-jvm-version: zulu:21
+//|
+//| repositories:
+//| - https://maven.aliyun.com/repository/google
+//| - https://maven.aliyun.com/repository/central
+//| - https://proxyd.picpi.top/https://dl.google.com/dl/android/maven2
+//|
+package build
+
+import mill.*, androidlib.*, kotlinlib.*
+import kotlinlib.ksp.KspModule
+import coursier.maven.MavenRepository
+
+// 本地 Maven 仓库（libbox AAR 发布于此）
+val localM2 = MavenRepository("file://" + sys.props("user.home") + "/.m2/repository")
+
+object androidSdkModule0 extends AndroidSdkModule {
+  def buildToolsVersion = "36.1.0"
+}
+
+// Cloudborne — M1 minimal app
+object app extends AndroidAppKotlinModule with KspModule {
+
+  def kotlinVersion = "2.4.10"
+  def kspVersion = "2.3.10"
+  def kspJvmTarget = "17"
+  def androidSdkModule = mill.api.ModuleRef(androidSdkModule0)
+  def androidCompileSdk = 36
+  def androidMinSdk = 26
+  def androidEnableCompose = true
+
+  // 本地 M2(libbox) -> 阿里镜像(主) -> 皮皮加速 repo1(兜底, salt-ui-android 等阿里缺的)
+  override def repositoriesTask = Task.Anon {
+    Seq(localM2) ++ Seq(
+      MavenRepository("https://maven.aliyun.com/repository/google"),
+      MavenRepository("https://maven.aliyun.com/repository/central"),
+      MavenRepository("https://proxyd.picpi.top/https://repo1.maven.org/maven2")
+    ) ++ super.repositoriesTask()
+  }
+  def androidIsDebug = true
+
+  def androidApplicationId = "com.cloudborne.android"
+  def androidApplicationNamespace = "com.cloudborne.android"
+
+  def mvnDeps: T[Seq[Dep]] = Seq(
+    mvn"androidx.core:core-ktx:1.19.0",
+    mvn"androidx.collection:collection-ktx:1.6.0",
+    mvn"androidx.activity:activity-compose:1.13.0",
+    mvn"androidx.activity:activity-ktx:1.13.0",
+    mvn"androidx.annotation:annotation:1.10.0",
+    mvn"androidx.compose.ui:ui:1.12.0-alpha01",
+    mvn"androidx.compose.foundation:foundation:1.12.0-alpha01",
+    mvn"androidx.compose.material3:material3:1.4.0",
+    mvn"androidx.compose.material:material-icons-extended:1.7.8",
+    mvn"androidx.compose.ui:ui-graphics:1.12.0-alpha01",
+    mvn"androidx.lifecycle:lifecycle-runtime-compose:2.11.0",
+    mvn"androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0",
+    mvn"androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0",
+    mvn"androidx.lifecycle:lifecycle-process:2.11.0",
+    mvn"androidx.room:room-runtime:2.8.4",
+    mvn"androidx.room:room-ktx:2.8.4",
+    mvn"androidx.datastore:datastore-preferences:1.2.0",
+    mvn"androidx.customview:customview-poolingcontainer:1.1.0",
+    mvn"androidx.tracing:tracing:1.3.0",
+    mvn"io.nekohasekai:libbox:1.13.15",
+    mvn"io.github.moriafly:salt-ui-android:3.0.0-alpha01"
+  )
+
+  def kotlinSymbolProcessors: T[Seq[Dep]] = Seq(
+    mvn"androidx.room:room-compiler:2.8.4"
+  )
+
+  object test extends KspTests with AndroidAppKotlinTests with TestModule.Junit4 {
+    def moduleDeps = Seq(app)
+    def kspVersion = app.kspVersion
+    def kspJvmTarget = app.kspJvmTarget
+    def kotlinSymbolProcessors: T[Seq[Dep]] = Seq(
+      mvn"androidx.room:room-compiler:2.8.4"
+    )
+    def mvnDeps = Seq(
+      mvn"junit:junit:4.13.2",
+      mvn"org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2"
+    )
+  }
+
+  object androidTest extends AndroidAppKotlinInstrumentedTests with KspModule {
+    def moduleDeps = Seq(app)
+    def kspVersion = app.kspVersion
+    def kspJvmTarget = app.kspJvmTarget
+    def kotlinSymbolProcessors: T[Seq[Dep]] = Seq(
+      mvn"androidx.room:room-compiler:2.8.4"
+    )
+    def mvnDeps = Seq(
+      mvn"junit:junit:4.13.2",
+      mvn"androidx.test:core-ktx:1.6.1",
+      mvn"androidx.test.ext:junit-ktx:1.2.1",
+      mvn"androidx.test:runner:1.6.2",
+      mvn"androidx.test:rules:1.6.1",
+      mvn"androidx.room:room-testing:2.8.4",
+      mvn"androidx.compose.ui:ui-test-junit4:1.12.0-alpha01"
+    )
+  }
+
+}
